@@ -1,0 +1,69 @@
+{
+    "name": "mortezamasumi/fb-copydb",
+    "description": "This is my package fb-copydb",
+    "keywords": [
+        "mortezamasumi",
+        "laravel",
+        "fb-copydb"
+    ],
+    "homepage": "https://github.com/mortezamasumi/fb-copydb",
+    "support": {
+        "issues": "https://github.com/mortezamasumi/fb-copydb/issues",
+        "source": "https://github.com/mortezamasumi/fb-copydb"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Morteza Masumi",
+            "email": "morteza.masumi@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "spatie/laravel-package-tools": "^1.0"
+    },
+    "require-dev": {
+        "nunomaduro/collision": "^8.0",
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "pestphp/pest-plugin-livewire": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mortezamasumi\\FbCopydb\\": "src/",
+            "Mortezamasumi\\FbCopydb\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mortezamasumi\\FbCopydb\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Mortezamasumi\\FbCopydb\\FbCopydbServiceProvider"
+            ],
+            "aliases": {
+                "FbCopydb": "Mortezamasumi\\FbCopydb\\Facades\\FbCopydb"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
