@@ -4,14 +4,14 @@ namespace Mortezamasumi\FbCopydb\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
 use Symfony\Component\Console\Attribute\AsCommand;
-use InvalidArgumentException;
 
 #[AsCommand(
     name: 'fb-copydb',
@@ -250,7 +250,7 @@ class FbCopydbCommand extends Command
     public function convertOldFilamentBaseTableNames($table): string
     {
         return match ($table) {
-            'mars_questions' => 'mars',
+            'mars_questions' => 'fb_mars',
             'settings' => 'fb_settings',
             'messages' => 'fb_message',
             'mars' => 'fb_mars',
