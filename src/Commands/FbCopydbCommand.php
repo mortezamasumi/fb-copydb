@@ -223,7 +223,7 @@ class FbCopydbCommand extends Command
                 $item = (array) $item;
 
                 if (array_key_exists('account_expires_at', $item)) {
-                    $item['expired_at'] = $item['account_expires_at'];
+                    $item['expiration_date'] = $item['account_expires_at'];
                     unset($item['account_expires_at']);
                 }
 
