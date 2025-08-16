@@ -4,14 +4,15 @@ namespace Mortezamasumi\FbCopydb\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Exception;
+use InvalidArgumentException;
 
 #[AsCommand(
     name: 'fb-copydb',
@@ -227,6 +228,11 @@ class FbCopydbCommand extends Command
                     unset($item['account_expires_at']);
                 }
 
+                if (array_key_exists('expired_at', $item)) {
+                    $item['expiration_date'] = $item['expired_at'];
+                    unset($item['expired_at']);
+                }
+
                 if (array_key_exists('mobile_verified_at', $item)) {
                     $item['email_verified_at'] = $item['mobile_verified_at'];
                     unset($item['mobile_verified_at']);
@@ -327,25 +333,27 @@ class FbCopydbCommand extends Command
             $progressBar->start();
 
             if ($data->isNotEmpty()) {
-                if ($this->option('old_filament_base')) {
-                    $data = $this->convertOldFilamentBaseUsersTable($table, $data);
+                $data = $this->convertOldFilamentBaseUsersTable($table, $data);
 
-                    $table = $this->convertOldFilamentBaseTableNames($table);
+                $table = $this->convertOldFilamentBaseTableNames($table);
+
+                try {
+                    DB::connection($destinationConnection)->table($table)->truncate();
+
+                    $data
+                        ->chunk($this->option('chunk_size'))
+                        ->each(
+                            function ($items) use ($destinationConnection, $table, $progressBar) {
+                                DB::connection($destinationConnection)
+                                    ->table($table)
+                                    ->insert(json_decode(json_encode($items), true));
+
+                                $progressBar->advance($items->count());
+                            }
+                        );
+                } catch (Exception $e) {
+                    $this->info("Error accessing of destination table $table with message: ".$e->getMessage());
                 }
-
-                DB::connection($destinationConnection)->table($table)->truncate();
-
-                $data
-                    ->chunk($this->option('chunk_size'))
-                    ->each(
-                        function ($items) use ($destinationConnection, $table, $progressBar) {
-                            DB::connection($destinationConnection)
-                                ->table($table)
-                                ->insert(json_decode(json_encode($items), true));
-
-                            $progressBar->advance($items->count());
-                        }
-                    );
             }
 
             $progressBar->finish();
