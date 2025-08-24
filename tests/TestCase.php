@@ -35,8 +35,8 @@ class TestCase extends Orchestra
     protected function defineEnvironment($app)
     {
         // config()->set('app.key', 'base64:Hupx3yAySikrM2/edkZQNQHslgDWYfiBfCuSThJ5SK8=');
-        config()->set('database.default', 'testing');
-        config()->set('queue.batching.database', 'testing');
+        // config()->set('database.default', 'testing');
+        // config()->set('queue.batching.database', 'testing');
         // config()->set('auth.providers.users.model', '\Tests\Models\User');
 
         /*
