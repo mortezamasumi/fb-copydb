@@ -217,7 +217,7 @@ class FbCopydbCommand extends Command
         Config::set('database.default', $temp);
     }
 
-    public function convertOldFilamentBaseUsersTable($table, $data): Collection
+    public function convertTableData($table, $data): Collection
     {
         if ($table === 'users') {
             $data = collect($data->toArray())->map(function ($item) {
@@ -253,15 +253,27 @@ class FbCopydbCommand extends Command
         return $data;
     }
 
-    public function convertOldFilamentBaseTableNames($table): string
+    public function convertTablesNames($table): string
     {
         return match ($table) {
             'mars_questions' => 'fb_mars',
             'settings' => 'fb_settings',
             'messages' => 'fb_message',
             'mars' => 'fb_mars',
+            'fb_message_user' => 'fb_message_users',
             default => $table,
         };
+    }
+
+    public function ignoreTables(): array
+    {
+        return [
+            'migrations',
+            'messages',
+            'fb_messages',
+            'fb_message_user',
+            'fb_message_users',
+        ];
     }
 
     public function handle()
@@ -298,7 +310,7 @@ class FbCopydbCommand extends Command
         }
 
         foreach ($tables as $table) {
-            if (in_array($table, ['migrations'])) {
+            if (in_array($table, $this->ignoreTables())) {
                 $this->info("Ignore processing of table $table.");
 
                 continue;
@@ -333,9 +345,9 @@ class FbCopydbCommand extends Command
             $progressBar->start();
 
             if ($data->isNotEmpty()) {
-                $data = $this->convertOldFilamentBaseUsersTable($table, $data);
+                $data = $this->convertTableData($table, $data);
 
-                $table = $this->convertOldFilamentBaseTableNames($table);
+                $table = $this->convertTablesNames($table);
 
                 try {
                     DB::connection($destinationConnection)->table($table)->truncate();
