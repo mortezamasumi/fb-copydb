@@ -2,17 +2,17 @@
 
 namespace Mortezamasumi\FbCopydb\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Exception;
-use InvalidArgumentException;
 
 #[AsCommand(
     name: 'fb-copydb',
@@ -32,6 +32,7 @@ class FbCopydbCommand extends Command
             {--dest_driver= : The destination driver if dest_connection not defined}
             {--old_filament_base=false : Fix users columns and table names from old filament-base}
             {--chunk_size=1000 : Chunk size to copy data}
+            {--tables_except= : List of tables to except to copy}
         SIG;
 
     public function getConnections(): array
@@ -267,13 +268,16 @@ class FbCopydbCommand extends Command
 
     public function ignoreTables(): array
     {
-        return [
-            'migrations',
-            'messages',
-            'fb_messages',
-            'fb_message_user',
-            'fb_message_users',
-        ];
+        return array_merge(
+            [
+                'migrations',
+                'messages',
+                'fb_messages',
+                'fb_message_user',
+                'fb_message_users',
+            ],
+            explode(',', $this->option('tables_except'))
+        );
     }
 
     public function handle()
