@@ -2,17 +2,17 @@
 
 namespace Mortezamasumi\FbCopydb\Commands;
 
-use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Exception;
+use InvalidArgumentException;
 
 #[AsCommand(
     name: 'fb-copydb',
@@ -104,7 +104,7 @@ class FbCopydbCommand extends Command
             $pass = $parts[1] ?? null;
 
             if (empty($user)) {
-                throw new InvalidArgumentException('Username cannot be empty');
+                throw new InvalidArgumentException('users cannot be empty');
             }
 
             Config::set('database.connections.'.$connectionName, [

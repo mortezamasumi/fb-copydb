@@ -2,63 +2,58 @@
 
 namespace Mortezamasumi\FbCopydb\Tests;
 
-use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
-use BladeUI\Icons\BladeIconsServiceProvider;
-use Filament\Actions\ActionsServiceProvider;
-use Filament\Forms\FormsServiceProvider;
-use Filament\Infolists\InfolistsServiceProvider;
-use Filament\Notifications\NotificationsServiceProvider;
-use Filament\Support\SupportServiceProvider;
-use Filament\Tables\TablesServiceProvider;
-use Filament\Widgets\WidgetsServiceProvider;
-use Filament\FilamentServiceProvider;
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Livewire\LivewireServiceProvider;
-use Mortezamasumi\FbCopydb\Tests\Services\FbCopydbPanelProvider;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Mortezamasumi\FbCopydb\FbCopydbServiceProvider;
-use Orchestra\Testbench\TestCase as Orchestra;
-use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
+use Orchestra\Testbench\TestCase as TestbenchTestCase;
 
-use function Orchestra\Testbench\default_migration_path;
-
-class TestCase extends Orchestra
+class TestCase extends TestbenchTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Factory::guessFactoryNamesUsing(
-        //     fn (string $modelName) => 'Mortezamasumi\\FbCopydb\\Database\\Factories\\'.class_basename($modelName).'Factory'
-        // );
-    }
+    use RefreshDatabase;
 
     protected function defineEnvironment($app)
     {
-        // config()->set('app.key', 'base64:Hupx3yAySikrM2/edkZQNQHslgDWYfiBfCuSThJ5SK8=');
-        // config()->set('database.default', 'testing');
-        // config()->set('queue.batching.database', 'testing');
-        // config()->set('auth.providers.users.model', '\Tests\Models\User');
+        $app['config']->set('database.connections.origin', [
+            'driver' => 'sqlite',
+            'database' => database_path('origin_testing.sqlite'),
+            'prefix' => '',
+        ]);
 
-        /*
-         * $migration = include __DIR__.'/../database/migrations/create_page-test_table.php.stub';
-         * $migration->up();
-         */
-        // View::addLocation(__DIR__.'/resources/views');
-        // View::addLocation(__DIR__.'/../resources/views');
-    }
+        File::put(database_path('origin_testing.sqlite'), '');
 
-    protected function defineDatabaseMigrations()
-    {
-        /** @var Orchestra $this */
-        $this->loadMigrationsFrom(default_migration_path());
-        $this->loadMigrationsFrom(default_migration_path().'/notifications');
-        // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
+        Schema::create('test', function (Blueprint $table) {
+            $table->id();
+            $table->string('text');
+            $table->timestamps();
+        });
+
+        Schema::connection('origin')->create('test', function (Blueprint $table) {
+            $table->id();
+            $table->string('text');
+            $table->timestamps();
+        });
+
+        // table which not exists on source
+        Schema::create('test1', function (Blueprint $table) {
+            $table->id();
+            $table->string('text');
+            $table->timestamps();
+        });
+
+        // table which not exists on destination
+        Schema::connection('origin')->create('test2', function (Blueprint $table) {
+            $table->id();
+            $table->string('text');
+            $table->timestamps();
+        });
     }
 
     protected function getPackageProviders($app)
     {
         return [
+            \Orchestra\Workbench\WorkbenchServiceProvider::class,
             FbCopydbServiceProvider::class,
         ];
     }
