@@ -1,14 +1,12 @@
-name: Test
+name: CI & Release
 
 on:
-  release:
-    types: [published]
-  workflow_run:
-    workflows: ['Release']
-    types: [completed]
+  push:
+    branches: [main, next]
 
 jobs:
   test:
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -21,8 +19,6 @@ jobs:
           - laravel: 12.*
             testbench: 10.*
             carbon: 3.*
-
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -51,3 +47,39 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: |
+          if [ ! -f package.json ]; then
+            echo '{"name": "project", "version": "1.0.0", "private": true}' > package.json
+          fi
+          npm install --no-audit --silent \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            @semantic-release/github \
+            conventional-changelog-conventionalcommits
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Run semantic-release
+        run: npx semantic-release --branches main,next --extends @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
