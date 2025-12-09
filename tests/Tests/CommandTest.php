@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -16,7 +17,7 @@ it('can copy datable tables from source to destination', function () {
 
     DB::connection('origin')->table('test')->insert($data);
 
-    /** @var \Illuminate\Foundation\Testing\TestCase $this */
+    /** @var Pest $this */
     $this
         ->artisan('fb-copydb --src_connection=origin --dest_connection=testing')
         ->assertExitCode(0);
