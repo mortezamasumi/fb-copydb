@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -12,11 +11,12 @@ it('can copy datable tables from source to destination', function () {
     $count = 10;
 
     $data = Collection::times($count, function (int $number) {
-        return ['text' => 'text '.$number];
+        return ['text' => 'text ' . $number];
     })->all();
 
     DB::connection('origin')->table('test')->insert($data);
 
+    /** @var \Illuminate\Foundation\Testing\TestCase $this */
     $this
         ->artisan('fb-copydb --src_connection=origin --dest_connection=testing')
         ->assertExitCode(0);
