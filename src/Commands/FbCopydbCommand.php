@@ -2,17 +2,19 @@
 
 namespace Mortezamasumi\FbCopydb\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Exception;
 use InvalidArgumentException;
+use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
+use PDO;
+use Symfony\Component\Console\Attribute\AsCommand;
 
 #[AsCommand(
     name: 'fb-copydb',
@@ -81,7 +83,7 @@ class FbCopydbCommand extends Command
         $connectionName = Str::of('connection_')->append(time());
 
         if ($driver === 'sqlite') {
-            Config::set('database.connections.'.$connectionName, [
+            Config::set('database.connections.' . $connectionName, [
                 'driver' => 'sqlite',
                 'database' => database_path($connectionName),
                 'prefix' => '',
@@ -107,7 +109,7 @@ class FbCopydbCommand extends Command
                 throw new InvalidArgumentException('users cannot be empty');
             }
 
-            Config::set('database.connections.'.$connectionName, [
+            Config::set('database.connections.' . $connectionName, [
                 'driver' => $driver,
                 'host' => $host,
                 'port' => '3306',
@@ -149,7 +151,7 @@ class FbCopydbCommand extends Command
                 case 'mysql':
                     $dbName = $config['database'];
 
-                    Config::set('database.connections.'.$dest.'.database', null);
+                    Config::set('database.connections.' . $dest . '.database', null);
 
                     DB::reconnect($dest);
 
@@ -163,7 +165,7 @@ class FbCopydbCommand extends Command
                         $this->info("Database '$dbName' already exists.");
                     }
 
-                    Config::set('database.connections.'.$dest.'.database', $dbName);
+                    Config::set('database.connections.' . $dest . '.database', $dbName);
                     DB::reconnect($dest);
 
                     return true;
@@ -213,8 +215,33 @@ class FbCopydbCommand extends Command
     public function migrateDestination($destinationConnection): void
     {
         $temp = Config::get('database.default');
+
         Config::set('database.default', $destinationConnection);
-        Artisan::call('migrate');
+
+        // Get the config for that connection
+        $connectionConfig = Config::get("database.connections.{$destinationConnection}");
+
+        // Only proceed if the driver supports DROP DATABASE (e.g., MySQL/MariaDB)
+        $driver = $connectionConfig['driver'] ?? null;
+        if (in_array($driver, ['mysql', 'mariadb'])) {
+            $databaseName = $connectionConfig['database'];
+
+            // Create a temporary connection to MySQL *without* selecting a database
+            $tempPdo = new PDO(
+                "mysql:host={$connectionConfig['host']}" .
+                    (isset($connectionConfig['port']) ? ";port={$connectionConfig['port']}" : ''),
+                $connectionConfig['username'],
+                $connectionConfig['password'],
+                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
+            );
+
+            // Drop and recreate the database
+            $tempPdo->exec("DROP DATABASE IF EXISTS `{$databaseName}`");
+            // $tempPdo->exec("CREATE DATABASE `{$databaseName}` CHARACTER SET {$connectionConfig['charset'] ?? 'utf8mb4'} COLLATE {$connectionConfig['collation'] ?? 'utf8mb4_unicode_ci'}");
+        }
+
+        Artisan::call('migrate', ['--force' => true]);
+
         Config::set('database.default', $temp);
     }
 
@@ -290,7 +317,7 @@ class FbCopydbCommand extends Command
 
         $this->migrateDestination($destinationConnection);
 
-        $sourceSqlite = Config::get('database.connections.'.$sourceConnection.'.driver') === 'sqlite';
+        $sourceSqlite = Config::get('database.connections.' . $sourceConnection . '.driver') === 'sqlite';
 
         if ($sourceSqlite) {
             $tables = array_column(
@@ -305,7 +332,7 @@ class FbCopydbCommand extends Command
             $tables = $tables->pluck(array_key_first((array) $tables->first()))->all();
         }
 
-        $destSqlite = Config::get('database.connections.'.$destinationConnection.'.driver') === 'sqlite';
+        $destSqlite = Config::get('database.connections.' . $destinationConnection . '.driver') === 'sqlite';
 
         if ($destSqlite) {
             DB::connection($destinationConnection)->statement('PRAGMA FOREIGN_KEY_CHECKS=0;');
@@ -324,7 +351,7 @@ class FbCopydbCommand extends Command
 
             if ($sourceSqlite) {
                 $columns = collect(DB::connection($sourceConnection)
-                        ->select('PRAGMA table_info(`'.$table.'`)'))
+                    ->select('PRAGMA table_info(`' . $table . '`)'))
                     ->filter(function ($column) {
                         return strpos($column->Extra ?? '', 'VIRTUAL') === false &&
                             strpos($column->Extra ?? '', 'STORED') === false;
@@ -333,7 +360,7 @@ class FbCopydbCommand extends Command
                     ->toArray();
             } else {
                 $columns = collect(DB::connection($sourceConnection)
-                        ->select("SHOW FULL COLUMNS FROM $table"))
+                    ->select("SHOW FULL COLUMNS FROM $table"))
                     ->filter(function ($column) {
                         return strpos($column->Extra ?? '', 'VIRTUAL') === false &&
                             strpos($column->Extra ?? '', 'STORED') === false;
@@ -368,13 +395,13 @@ class FbCopydbCommand extends Command
                             }
                         );
                 } catch (Exception $e) {
-                    $this->info("Error accessing of destination table $table with message: ".$e->getMessage());
+                    $this->info("Error accessing of destination table $table with message: " . $e->getMessage());
                 }
             }
 
             $progressBar->finish();
 
-            $this->info(PHP_EOL."Finished data copy for table $table.");
+            $this->info(PHP_EOL . "Finished data copy for table $table.");
         }
 
         if ($destSqlite) {
