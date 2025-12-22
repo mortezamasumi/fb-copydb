@@ -35,6 +35,7 @@ class FbCopydbCommand extends Command
             {--old_filament_base=false : Fix users columns and table names from old filament-base}
             {--chunk_size=1000 : Chunk size to copy data}
             {--tables_except= : List of tables to except to copy}
+            {--no-migrate : No drop db and migration on destination}
         SIG;
 
     public function getConnections(): array
@@ -214,6 +215,10 @@ class FbCopydbCommand extends Command
 
     public function migrateDestination($destinationConnection): void
     {
+        if ($this->option('no-migrate')) {
+            return;
+        }
+  
         $temp = Config::get('database.default');
 
         Config::set('database.default', $destinationConnection);
