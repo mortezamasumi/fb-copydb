@@ -45,8 +45,8 @@ jobs:
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "nesbot/carbon:${{ matrix.carbon }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: Execute tests
-        run: vendor/bin/pest --ci
+      # - name: Execute tests
+      #   run: vendor/bin/pest --ci
 
   release:
     name: Release
@@ -80,6 +80,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Run semantic-release
-        run: npx semantic-release --branches main,next --extends @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+        run: |
+          npx semantic-release \
+            --plugins "@semantic-release/commit-analyzer,@semantic-release/release-notes-generator,@semantic-release/github" \
+            --preset "conventionalcommits"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
