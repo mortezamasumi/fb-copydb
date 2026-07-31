@@ -24,6 +24,9 @@ class FbCopydbServiceProvider extends PackageServiceProvider
         Testable::mixin(new TestsFbCopydb);
     }
 
+    /**
+     * @return array<int, class-string>
+     */
     protected function getCommands(): array
     {
         return [

@@ -14,7 +14,7 @@ jobs:
         os: [ubuntu-latest]
         php: [8.3]
         laravel: [12.*]
-        stability: [prefer-stable]
+        stability: [prefer-stable, prefer-lowest]
         include:
           - laravel: 12.*
             testbench: 10.*
@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Composer authentication
         run: |
@@ -45,8 +45,20 @@ jobs:
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "nesbot/carbon:${{ matrix.carbon }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      # - name: Execute tests
-      #   run: vendor/bin/pest --ci
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Audit dependencies
+        run: composer audit
+
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Run static analysis
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Execute tests
+        run: vendor/bin/pest --ci
 
   release:
     name: Release
@@ -56,7 +68,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true

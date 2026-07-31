@@ -9,7 +9,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Mortezamasumi\FbCopydb\Exceptions\InvalidDatabaseException;
@@ -22,7 +21,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 )]
 class FbCopydbCommand extends Command
 {
-    protected $signature = <<<SIG
+    protected $signature = <<<'SIG'
             fb-copydb
             {--src_connection= : The source connection if defined in database.php}
             {--src_url= : The source connection auth in format user:pass@host if src_connection not defined}
@@ -32,48 +31,68 @@ class FbCopydbCommand extends Command
             {--dest_url= : The destination connection auth in format user:pass@host if dest_connection not defined}
             {--dest_db= : The destination database name if dest_connection not defined}
             {--dest_driver= : The destination driver if dest_connection not defined}
-            {--old_filament_base=false : Fix users columns and table names from old filament-base}
             {--chunk_size=1000 : Chunk size to copy data}
             {--tables_except= : List of tables to except to copy}
             {--no-migrate : No drop db and migration on destination}
         SIG;
 
+    /**
+     * @return array{string, string}
+     */
     public function getConnections(): array
     {
-        if ($this->option('src_connection')) {
-            $sourceConnection = $this->option('src_connection');
+        $sourceConnectionName = $this->option('src_connection');
+
+        if (is_string($sourceConnectionName) && $sourceConnectionName !== '') {
+            $sourceConnection = $sourceConnectionName;
         } else {
-            if (! $this->option('src_url')) {
+            $sourceUrl = $this->option('src_url');
+
+            if (! is_string($sourceUrl) || $sourceUrl === '') {
                 throw new InvalidArgumentException('Source url must be set if not src_connection defined');
             }
 
-            if (! $this->option('src_db')) {
+            $sourceDb = $this->option('src_db');
+
+            if (! is_string($sourceDb) || $sourceDb === '') {
                 throw new InvalidArgumentException('Source db must be set if not src_connection defined');
             }
 
+            $sourceDriver = $this->option('src_driver');
+
             $sourceConnection = $this->makeConnection(
-                $this->option('src_url'),
-                $this->option('src_db'),
-                $this->option('src_driver') ?? 'mysql'
+                $sourceUrl,
+                $sourceDb,
+                is_string($sourceDriver) ? $sourceDriver : 'mysql'
             );
         }
 
-        if ($this->option('dest_connection')) {
-            $destinationConnection = $this->option('dest_connection');
-        } else {
-            if (! $this->option('dest_url')) {
-                $destinationConnection = Config::get('database.default');
-            } else {
-                if (! $this->option('dest_db')) {
-                    throw new InvalidArgumentException('Destination db must be set if not dest_connection defined');
-                }
+        $destinationConnectionName = $this->option('dest_connection');
 
-                $destinationConnection = $this->makeConnection(
-                    $this->option('dest_url'),
-                    $this->option('dest_db'),
-                    $this->option('dest_driver') ?? 'mysql'
-                );
+        if (is_string($destinationConnectionName) && $destinationConnectionName !== '') {
+            $destinationConnection = $destinationConnectionName;
+        } elseif (! $this->option('dest_url')) {
+            $destinationConnection = (string) Config::get('database.default');
+        } else {
+            $destinationUrl = $this->option('dest_url');
+
+            if (! is_string($destinationUrl)) {
+                throw new InvalidArgumentException('Destination url must be set if not dest_connection defined');
             }
+
+            $destinationDb = $this->option('dest_db');
+
+            if (! is_string($destinationDb) || $destinationDb === '') {
+                throw new InvalidArgumentException('Destination db must be set if not dest_connection defined');
+            }
+
+            $destinationDriver = $this->option('dest_driver');
+
+            $destinationConnection = $this->makeConnection(
+                $destinationUrl,
+                $destinationDb,
+                is_string($destinationDriver) ? $destinationDriver : 'mysql'
+            );
         }
 
         return [$sourceConnection, $destinationConnection];
@@ -81,12 +100,12 @@ class FbCopydbCommand extends Command
 
     public function makeConnection(string $url, string $db, string $driver): string
     {
-        $connectionName = Str::of('connection_')->append(time());
+        $connectionName = Str::of('connection_')->append((string) time());
 
         if ($driver === 'sqlite') {
-            Config::set('database.connections.' . $connectionName, [
+            Config::set('database.connections.'.$connectionName, [
                 'driver' => 'sqlite',
-                'database' => database_path($connectionName),
+                'database' => database_path($db),
                 'prefix' => '',
                 'foreign_key_constraints' => true,
             ]);
@@ -98,19 +117,19 @@ class FbCopydbCommand extends Command
             [$credentials, $host] = explode('@', $url, 2);
 
             if (empty($host)) {
-                throw new InvalidArgumentException('Host cannot be emptyt');
+                throw new InvalidArgumentException('Host cannot be empty');
             }
 
             $parts = explode(':', $credentials, 2);
 
-            $user = $parts[0] ?? null;
+            $user = $parts[0];
             $pass = $parts[1] ?? null;
 
             if (empty($user)) {
-                throw new InvalidArgumentException('users cannot be empty');
+                throw new InvalidArgumentException('User cannot be empty');
             }
 
-            Config::set('database.connections.' . $connectionName, [
+            Config::set('database.connections.'.$connectionName, [
                 'driver' => $driver,
                 'host' => $host,
                 'port' => '3306',
@@ -129,7 +148,7 @@ class FbCopydbCommand extends Command
         return $connectionName;
     }
 
-    public function createDestinationDatabase($dest): bool
+    public function createDestinationDatabase(string $dest): bool
     {
         $config = Config::get("database.connections.{$dest}");
 
@@ -152,7 +171,7 @@ class FbCopydbCommand extends Command
                 case 'mysql':
                     $dbName = $config['database'];
 
-                    Config::set('database.connections.' . $dest . '.database', null);
+                    Config::set('database.connections.'.$dest.'.database', null);
 
                     DB::reconnect($dest);
 
@@ -166,44 +185,13 @@ class FbCopydbCommand extends Command
                         $this->info("Database '$dbName' already exists.");
                     }
 
-                    Config::set('database.connections.' . $dest . '.database', $dbName);
+                    Config::set('database.connections.'.$dest.'.database', $dbName);
                     DB::reconnect($dest);
 
                     return true;
 
                 case 'pgsql':
                     return false;
-
-                    $originalDbName = $config['database'];
-
-                    $tempConfig = $config;
-                    unset($tempConfig['database']);
-
-                    DB::purge($dest);
-                    Config::set("database.connections.{$dest}", $tempConfig);
-                    DB::reconnect($dest);
-
-                    $created = false;
-
-                    $result = DB::connection($dest)
-                        ->select('SELECT 1 FROM pg_database WHERE datname = ?', [$originalDbName]);
-                    if (empty($result)) {
-                        DB::connection($dest)
-                            ->statement("CREATE DATABASE \"{$originalDbName}\"");
-                        $created = true;
-                    }
-
-                    DB::purge($dest);
-                    Config::set("database.connections.{$dest}", $config);
-                    DB::reconnect($dest);
-
-                    if ($created) {
-                        $this->info("Database '$originalDbName' created successfully.");
-                    } else {
-                        $this->info("Database '$originalDbName' already exists.");
-                    }
-
-                    return true;
 
                 default:
                     return false;
@@ -213,12 +201,12 @@ class FbCopydbCommand extends Command
         }
     }
 
-    public function migrateDestination($destinationConnection): void
+    public function migrateDestination(string $destinationConnection): void
     {
         if ($this->option('no-migrate')) {
             return;
         }
-  
+
         $temp = Config::get('database.default');
 
         Config::set('database.default', $destinationConnection);
@@ -233,11 +221,11 @@ class FbCopydbCommand extends Command
 
             // Create a temporary connection to MySQL *without* selecting a database
             $tempPdo = new PDO(
-                "mysql:host={$connectionConfig['host']}" .
+                "mysql:host={$connectionConfig['host']}".
                     (isset($connectionConfig['port']) ? ";port={$connectionConfig['port']}" : ''),
                 $connectionConfig['username'],
                 $connectionConfig['password'],
-                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
 
             // Drop and recreate the database
@@ -250,10 +238,14 @@ class FbCopydbCommand extends Command
         Config::set('database.default', $temp);
     }
 
-    public function convertTableData($table, $data): Collection
+    /**
+     * @param  Collection<int, mixed>  $data
+     * @return Collection<int, mixed>
+     */
+    public function convertTableData(string $table, Collection $data): Collection
     {
         if ($table === 'users') {
-            $data = collect($data->toArray())->map(function ($item) {
+            $data = $data->map(function (mixed $item): array {
                 $item = (array) $item;
 
                 if (array_key_exists('account_expires_at', $item)) {
@@ -286,7 +278,7 @@ class FbCopydbCommand extends Command
         return $data;
     }
 
-    public function convertTablesNames($table): string
+    public function convertTablesNames(string $table): string
     {
         return match ($table) {
             'mars_questions' => 'fb_mars',
@@ -298,8 +290,17 @@ class FbCopydbCommand extends Command
         };
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function ignoreTables(): array
     {
+        $except = $this->option('tables_except');
+
+        $exceptTables = is_string($except) && $except !== ''
+            ? explode(',', $except)
+            : [];
+
         return array_merge(
             [
                 'migrations',
@@ -308,11 +309,11 @@ class FbCopydbCommand extends Command
                 'fb_message_user',
                 'fb_message_users',
             ],
-            explode(',', $this->option('tables_except'))
+            $exceptTables
         );
     }
 
-    public function handle()
+    public function handle(): int
     {
         [$sourceConnection, $destinationConnection] = $this->getConnections();
 
@@ -322,7 +323,7 @@ class FbCopydbCommand extends Command
 
         $this->migrateDestination($destinationConnection);
 
-        $sourceSqlite = Config::get('database.connections.' . $sourceConnection . '.driver') === 'sqlite';
+        $sourceSqlite = Config::get('database.connections.'.$sourceConnection.'.driver') === 'sqlite';
 
         if ($sourceSqlite) {
             $tables = array_column(
@@ -334,10 +335,12 @@ class FbCopydbCommand extends Command
         } else {
             $tables = collect(DB::connection($sourceConnection)->select('SHOW TABLES'));
 
-            $tables = $tables->pluck(array_key_first((array) $tables->first()))->all();
+            $firstTable = $tables->first();
+
+            $tables = $firstTable ? $tables->pluck(array_key_first((array) $firstTable))->all() : [];
         }
 
-        $destSqlite = Config::get('database.connections.' . $destinationConnection . '.driver') === 'sqlite';
+        $destSqlite = Config::get('database.connections.'.$destinationConnection.'.driver') === 'sqlite';
 
         if ($destSqlite) {
             DB::connection($destinationConnection)->statement('PRAGMA FOREIGN_KEY_CHECKS=0;');
@@ -356,7 +359,7 @@ class FbCopydbCommand extends Command
 
             if ($sourceSqlite) {
                 $columns = collect(DB::connection($sourceConnection)
-                    ->select('PRAGMA table_info(`' . $table . '`)'))
+                    ->select('PRAGMA table_info(`'.$table.'`)'))
                     ->filter(function ($column) {
                         return strpos($column->Extra ?? '', 'VIRTUAL') === false &&
                             strpos($column->Extra ?? '', 'STORED') === false;
@@ -388,25 +391,33 @@ class FbCopydbCommand extends Command
                 try {
                     DB::connection($destinationConnection)->table($table)->truncate();
 
+                    $chunkSize = $this->option('chunk_size');
+
                     $data
-                        ->chunk($this->option('chunk_size'))
+                        ->chunk(is_numeric($chunkSize) ? (int) $chunkSize : 1000)
                         ->each(
                             function ($items) use ($destinationConnection, $table, $progressBar) {
+                                $rows = $items
+                                    ->map(function (mixed $item): array {
+                                        return (array) $item;
+                                    })
+                                    ->all();
+
                                 DB::connection($destinationConnection)
                                     ->table($table)
-                                    ->insert(json_decode(json_encode($items), true));
+                                    ->insert($rows);
 
                                 $progressBar->advance($items->count());
                             }
                         );
                 } catch (Exception $e) {
-                    $this->info("Error accessing of destination table $table with message: " . $e->getMessage());
+                    $this->info("Error accessing of destination table $table with message: ".$e->getMessage());
                 }
             }
 
             $progressBar->finish();
 
-            $this->info(PHP_EOL . "Finished data copy for table $table.");
+            $this->info(PHP_EOL."Finished data copy for table $table.");
         }
 
         if ($destSqlite) {

@@ -1,54 +1,71 @@
-# This is my package fb-copydb
+# FB CopyDB — Database Copy Command
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/mortezamasumi/fb-copydb.svg?style=flat-square)](https://packagist.org/packages/mortezamasumi/fb-copydb)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/mortezamasumi/fb-copydb/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/mortezamasumi/fb-copydb/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/mortezamasumi/fb-copydb/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/mortezamasumi/fb-copydb/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/mortezamasumi/fb-copydb/ci.yml?branch=main&label=tests&style=flat-square)](https://github.com/mortezamasumi/fb-copydb/actions?query=branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/mortezamasumi/fb-copydb.svg?style=flat-square)](https://packagist.org/packages/mortezamasumi/fb-copydb)
+[![License](https://img.shields.io/packagist/l/mortezamasumi/fb-copydb.svg?style=flat-square)](LICENSE.md)
 
+A Laravel artisan command that copies the contents of a source database into a
+destination database. It supports SQLite and MySQL connections, configurable
+per-connection options, chunked inserts, and legacy `filament-base` user
+column/table-name conversion.
 
+---
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+## Features
+
+- **Copy between connections** — use a connection defined in `database.php` or build one inline with `--src_url` / `--dest_url`
+- **Automatic destination setup** — creates the destination database and runs migrations (unless `--no-migrate` is given)
+- **Chunked inserts** — configurable `--chunk_size` (default 1000) to keep memory usage low
+- **Legacy conversion** — maps old `filament-base` user columns (`account_expires_at`, `expired_at`, `mobile_verified_at`) and table names (`settings` → `fb_settings`, `messages` → `fb_message`, ...)
+- **Skip tables** — always-ignored message/migration tables plus a `--tables_except` list
+
+---
 
 ## Installation
-
-You can install the package via composer:
 
 ```bash
 composer require mortezamasumi/fb-copydb
 ```
 
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="fb-copydb-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag="fb-copydb-config"
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="fb-copydb-views"
-```
-
-This is the contents of the published config file:
-
-```php
-return [
-];
-```
+---
 
 ## Usage
 
-```php
-$fbCopydb = new Mortezamasumi\FbCopydb();
-echo $fbCopydb->echoPhrase('Hello, Mortezamasumi!');
+Run the copy using two existing connections:
+
+```bash
+php artisan fb-copydb --src_connection=source --dest_connection=destination
 ```
+
+Or point directly at a remote database:
+
+```bash
+php artisan fb-copydb \
+  --src_url=user:pass@host \
+  --src_db=my_database \
+  --dest_connection=local
+```
+
+When no destination is given, the application's default connection is used.
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--src_connection=` | Source connection as defined in `database.php` |
+| `--src_url=` | Source credentials in `user:pass@host` format when `src_connection` is not set |
+| `--src_db=` | Source database name when `src_connection` is not set |
+| `--src_driver=` | Source driver (default `mysql`) when `src_connection` is not set |
+| `--dest_connection=` | Destination connection as defined in `database.php` |
+| `--dest_url=` | Destination credentials in `user:pass@host` format when `dest_connection` is not set |
+| `--dest_db=` | Destination database name when `dest_connection` is not set |
+| `--dest_driver=` | Destination driver (default `mysql`) when `dest_connection` is not set |
+| `--chunk_size=1000` | Number of rows inserted per chunk |
+| `--tables_except=` | Comma-separated list of tables to skip |
+| `--no-migrate` | Skip dropping the destination database and running migrations |
+
+---
 
 ## Testing
 
@@ -56,22 +73,27 @@ echo $fbCopydb->echoPhrase('Hello, Mortezamasumi!');
 composer test
 ```
 
-## Changelog
+---
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+## Support policy
+
+| PHP | Laravel | Supported |
+| --- | --- | --- |
+| 8.3 | 12 | Yes |
+
+---
 
 ## Contributing
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
 
-## Security Vulnerabilities
+## Security
 
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+If you discover a security vulnerability, please review our [security policy](.github/SECURITY.md) and report it privately.
 
-## Credits
+## Changelog
 
-- [Morteza Masumi](https://github.com/mortezamasumi)
-- [All Contributors](../../contributors)
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## License
 

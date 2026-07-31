@@ -1,10 +1,13 @@
 {
     "name": "mortezamasumi/fb-copydb",
-    "description": "This is my package fb-copydb",
+    "description": "Artisan command to copy database contents between connections",
     "keywords": [
         "mortezamasumi",
         "laravel",
-        "fb-copydb"
+        "filament",
+        "fb-copydb",
+        "database",
+        "copy"
     ],
     "homepage": "https://github.com/mortezamasumi/fb-copydb",
     "support": {
@@ -25,17 +28,19 @@
     },
     "require-dev": {
         "filament/upgrade": "^5.0",
+        "larastan/larastan": "^3.10",
+        "laravel/pint": "^1.30",
         "orchestra/testbench": "^10.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
         "pestphp/pest-plugin-browser": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
-        "pestphp/pest-plugin-livewire": "^4.0"
+        "pestphp/pest-plugin-livewire": "^4.0",
+        "phpstan/phpstan": "^2.2"
     },
     "autoload": {
         "psr-4": {
-            "Mortezamasumi\\FbCopydb\\": "src/",
-            "Mortezamasumi\\FbCopydb\\Database\\Factories\\": "database/factories/"
+            "Mortezamasumi\\FbCopydb\\": "src/"
         }
     },
     "autoload-dev": {
@@ -46,23 +51,21 @@
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
         "test": "vendor/bin/pest",
-        "test-coverage": "vendor/bin/pest --coverage"
+        "test-coverage": "vendor/bin/pest --coverage",
+        "pint": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse --no-progress"
     },
     "config": {
         "sort-packages": true,
         "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "phpstan/extension-installer": true
+            "pestphp/pest-plugin": true
         }
     },
     "extra": {
         "laravel": {
             "providers": [
                 "Mortezamasumi\\FbCopydb\\FbCopydbServiceProvider"
-            ],
-            "aliases": {
-                "FbCopydb": "Mortezamasumi\\FbCopydb\\Facades\\FbCopydb"
-            }
+            ]
         }
     },
     "minimum-stability": "stable",

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Mortezamasumi\FbCopydb\FbCopydbServiceProvider;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
+use Orchestra\Workbench\WorkbenchServiceProvider;
 
 class TestCase extends TestbenchTestCase
 {
@@ -53,7 +54,7 @@ class TestCase extends TestbenchTestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Orchestra\Workbench\WorkbenchServiceProvider::class,
+            WorkbenchServiceProvider::class,
             FbCopydbServiceProvider::class,
         ];
     }
