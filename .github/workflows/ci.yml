@@ -89,10 +89,10 @@ jobs:
           fi
           npm install --no-audit --silent \
             semantic-release@^25 \
-            @semantic-release/commit-analyzer \
-            @semantic-release/release-notes-generator \
-            @semantic-release/github \
-            conventional-changelog-conventionalcommits
+            @semantic-release/commit-analyzer@^13 \
+            @semantic-release/release-notes-generator@^14 \
+            @semantic-release/github@^12 \
+            conventional-changelog-conventionalcommits@^10
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
