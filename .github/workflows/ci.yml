@@ -88,6 +88,7 @@ jobs:
             echo '{"name": "project", "version": "1.0.0", "private": true}' > package.json
           fi
           npm install --no-audit --silent \
+            semantic-release@^25 \
             @semantic-release/commit-analyzer \
             @semantic-release/release-notes-generator \
             @semantic-release/github \
