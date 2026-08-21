@@ -85,15 +85,14 @@ jobs:
       - name: Install dependencies
         run: |
           if [ ! -f package.json ]; then
-            echo '{"name": "project", "version": "1.0.0", "private": true}' > package.json
+            echo '{"name": "project", "version": "1.0.0", "private": true, "overrides": {"conventional-changelog-writer": "^9.0.0"}}' > package.json
           fi
           npm install --no-audit --silent \
             semantic-release@^25 \
             @semantic-release/commit-analyzer@^13 \
             @semantic-release/release-notes-generator@^14 \
             @semantic-release/github@^12 \
-            conventional-changelog-conventionalcommits@^10 \
-            conventional-changelog-writer@^9
+            conventional-changelog-conventionalcommits@^10
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
