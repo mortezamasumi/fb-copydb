@@ -85,7 +85,7 @@ jobs:
       - name: Install dependencies
         run: |
           if [ ! -f package.json ]; then
-            echo '{"name": "project", "version": "1.0.0", "private": true, "overrides": {"conventional-changelog-writer": "^9.0.0"}}' > package.json
+            echo '{"name": "project", "version": "1.0.0", "private": true}' > package.json
           fi
           npm install --no-audit --silent \
             semantic-release@^25 \
