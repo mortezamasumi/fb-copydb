@@ -92,7 +92,7 @@ jobs:
             @semantic-release/commit-analyzer@^13 \
             @semantic-release/release-notes-generator@^14 \
             @semantic-release/github@^12 \
-            conventional-changelog-conventionalcommits@^10
+            conventional-changelog-conventionalcommits@^8
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
